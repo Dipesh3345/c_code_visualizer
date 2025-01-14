@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Code Visualizer</title>
+    <!-- Prism.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet">
+
+    <!-- Prism.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+
+    <!-- CodeMirror CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/monokai.min.css" rel="stylesheet">
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/clike/clike.min.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <!-- Input Section -->
+        <div class="input-section">
+            <h2>Enter C Code</h2>
+            <form method="post" id="code-form">
+                {% csrf_token %}
+                <textarea id="code-input" name="c_code">{% if c_code %}{{ c_code|safe }}{% endif %}</textarea>
+                <br>
+                <button type="button" id="run-code-btn">Run Code</button>
+                <button type="button" id="visualize-memory-btn">Visualize Memory</button>
+                <button type="button" class="clear-btn" onclick="clearEditor()">Clear Code</button>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="output-section">
+            <h2>Output</h2>
+            {% if error %}
+                <pre class="error-box">{{ error|safe }}</pre>
+            {% elif output %}
+                <pre><code class="language-c line-numbers">{{ output|safe }}</code></pre>
+            {% else %}
+                <p>Run the code to see the output here.</p>
+            {% endif %}
+        </div>
+
+        <!-- Memory Visualization Section -->
+        <div class="memory-visualization">
+            <h3>Memory Visualization</h3>
+            <svg id="memory-svg"></svg>
+            <!-- Hidden script to store memory data -->
+            <script id="memory_data" type="application/json">
+                {{ memory_data|safe|default:"[]" }}
+            </script>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</body>
+</html>
