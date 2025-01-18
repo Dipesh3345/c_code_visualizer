@@ -22,7 +22,7 @@ Install c_code_visualizer with Django
     python manage.py runserver
     Open your browser and navigate to http://127.0.0.1:8000
 ```
-    ## Usage
+## Usage
 
 ### Writing and Running Code
 1. **Enter your C code**: Use the editor on the homepage to write your C code.
