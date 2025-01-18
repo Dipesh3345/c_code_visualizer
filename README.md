@@ -90,14 +90,14 @@ c_code_visualizer/
 │   │   └── style.css                 # Your CSS files (e.g., style.css)
 │   ├── js/                           # JavaScript files
 │   │   ├── update_memory.py                       
-│   │   └── main.js                   # JavaScript for frontend (e.g., main.js
+│   │   └── main.js                   # JavaScript for frontend (e.g., main.js)
 └── .vscode/                          # Visual Studio Code workspace settings
     └── settings.json                 # VS Code settings for the project
 
 ## Screenshots
 
 ### Homepage
-![Homepage Screenshot](images/screenshot1.png)
+![Homepage Screenshot](images/screenshot2.png)
 
 ### Debugger View
-![Debugger Screenshot](images/screenshot2.png)
+![Debugger Screenshot](images/screenshot1.png)
