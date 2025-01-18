@@ -1,69 +1,79 @@
+from .helpers.gdb_helper import start_debugging_session, step_forward_session, stop_debugging_session
+from .helpers.memory_helper import extract_memory_data
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_exempt
 import subprocess
 import json
-import re
+
+gdb_sessions = {}
+gdb_process = None
+current_line = 0
 
 def home(request):
     context = {}
-    
     if request.method == 'POST':
-        # Get the action type: 'run_code' or 'visualize_memory'
         action = request.POST.get('action', '')
-        # Get the submitted C code
         c_code = request.POST.get('c_code', '')
-        context['c_code'] = c_code  # Pass the entered code back to the template
-        print(action)
+        context['c_code'] = c_code
+
         if not c_code.strip():
             context['error'] = "No C code provided."
             return render(request, 'visualize_code/home.html', context)
 
-        # Save C code to a temporary file
-        with open('temp.c', 'w') as file:
-            file.write(c_code)
-
+        temp_file = 'tempfile.c'
         try:
+            with open(temp_file, 'w') as file:
+                file.write(c_code)
+
             if action == 'run_code':
-                print("Hello")
-                # Compile and run the C code
-                result = subprocess.run(['gcc', '-mconsole', 'temp.c', '-o', 'temp.out'], capture_output=True, text=True)
-                if result.returncode != 0:
-                    # Compilation error
-                    context['error'] = result.stderr
+                compile_result = subprocess.run(['gcc', '-g', temp_file, '-o', 'tempfile.out'], capture_output=True, text=True)
+                if compile_result.returncode != 0:
+                    context['error'] = compile_result.stderr
                 else:
-                    # Run the compiled program
-                    output = subprocess.run(['./temp.out'], capture_output=True, text=True)
-                    context['output'] = output.stdout
+                    execution_result = subprocess.run(['./temp.out'], capture_output=True, text=True)
+                    context['output'] = execution_result.stdout
 
             elif action == 'visualize_memory':
-                # Extract variable information for memory management visualization
                 memory_data = extract_memory_data(c_code)
-                context['memory_data'] = mark_safe(json.dumps(memory_data))  # Pass as JSON-safe
+                context['memory_data'] = mark_safe(json.dumps(memory_data))
 
         except Exception as e:
             context['error'] = str(e)
 
     return render(request, 'visualize_code/home.html', context)
 
-def extract_memory_data(c_code):
-    """
-    Simulates memory management by extracting variables and their values from C code.
-    """
-    memory_data = []
-    # Regular expression to match simple variable declarations (int, float, char)
-    var_pattern = r'\b(int|float|char)\s+(\w+)\s*=\s*([^;]+);'
 
-    for match in re.finditer(var_pattern, c_code):
-        var_type, var_name, var_value = match.groups()
-        # Generate a mock memory address (hexadecimal, for visualization)
-        memory_address = f"0x{hash(var_name) & 0xFFFFFF:06x}"
+@csrf_exempt
+def start_debugging(request):
+    try:
+        if request.method == "POST":
+            # Directly return the response from start_debugging_session
+            return JsonResponse(start_debugging_session(request))
+        else:
+            return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
-        memory_data.append({
-            "variable": var_name,
-            "value": var_value.strip(),
-            "type": var_type,
-            "address": memory_address,
-        })
+@csrf_exempt
+def stop_debugging(request):
+    try:
+        if request.method == "POST":
+            # Directly return the response from stop_debugging_session
+            return JsonResponse(stop_debugging_session(request))
+        else:
+            return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
-    return memory_data
+@csrf_exempt
+def step_forward(request):
+    try:
+        if request.method == "POST":
+            # Directly return the response from step_forward_session
+            return JsonResponse(step_forward_session(request))
+        else:
+            return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

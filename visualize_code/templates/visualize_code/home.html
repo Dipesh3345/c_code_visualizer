@@ -1,4 +1,5 @@
 {% load static %}
+<meta name="csrf-token" content="{{ csrf_token }}">
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,6 +37,9 @@
                 <button type="button" id="run-code-btn">Run Code</button>
                 <button type="button" id="visualize-memory-btn">Visualize Memory</button>
                 <button type="button" class="clear-btn" onclick="clearEditor()">Clear Code</button>
+                <button type="button" id="start-btn">Start</button>
+                <button type="button" id="next-button">Next</button>
+                <button type="button" id="stop-btn">Stop</button>
             </form>
         </div>
 
@@ -64,6 +68,7 @@
 
     <!-- JS -->
     <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/update_memory.js' %}"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
 </body>
 </html>
