@@ -63,32 +63,32 @@ fetch('/start_debugging', {
 ## Folder Structure
 
 ### `c_code_visualizer/` (Root Directory)
-- **manage.py**: The script used to manage your Django project (e.g., running development servers, migrations, creating apps, etc.).
-- **db.sqlite3**: SQLite database file (Django's default database).
-- **README.md**: Documentation for your project.
+- **manage.py**
+- **db.sqlite3**
+- **README.md**
   
 ### `visualize_code/` (Main App Folder)
-- **`__init__.py`**: Marks this directory as a Python package.
-- **admin.py**: Configuration file for setting up the Django Admin interface.
-- **apps.py**: Configuration file for the app.
-- **helpers/**: A directory for organizing helper functions related to specific tasks.
-  - **gdb_helpers.py**: Contains functions for interacting with the GDB debugger.
-  - **memory_helpers.py**: Contains functions for memory-related logic.
-- **migrations/**: This folder holds the migration files used to create and update the database schema.
-  - **`__init__.py`**: Marks this as a Python package for migrations.
-- **models.py**: Defines the data models (for example, if you're storing memory states).
-- **templates/**: Stores HTML templates for rendering views.
+- **`__init__.py`**
+- **admin.py**
+- **apps.py**
+- **helpers/**
+  - **gdb_helpers.py**
+  - **memory_helpers.py**
+- **migrations/**
+  - **`__init__.py`**
+- **models.py**
+- **templates/**
   - **home.html**: Homepage template.
-- **tests.py**: Contains unit tests for testing the app.
-- **urls.py**: Defines URL routing for the app.
-- **views.py**: Contains view functions for handling requests and rendering responses.
+- **tests.py**
+- **urls.py**
+- **views.py**
 
 ### `static/` (Static Files)
-- **css/**: Folder for stylesheets used in the frontend.
-  - **style.css**: CSS file for styling the app.
-- **js/**: Folder for JavaScript files.
-  - **update_memory.py**: Logic related to updating memory visualization.
-  - **main.js**: JavaScript file for frontend interactions (e.g., the code editor).
+- **css/**
+  - **style.css**
+- **js/**
+  - **update_memory.py**
+  - **main.js**
   
 ## Screenshots
 
