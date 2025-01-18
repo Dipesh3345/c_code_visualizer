@@ -59,41 +59,37 @@ fetch('/start_debugging', {
 
 ```
 
+
 ## Folder Structure
 
-c_code_visualizer/
-│
-├── manage.py                         # Django project management script
-├── db.sqlite3                        # Database file (if you're using Django's default SQLite)
-├── README.md                         # Project documentation
-│
-├── visualize_code/                   # Main app folder
-│   ├── __init__.py                   # Python package marker
-│   ├── admin.py                      # Admin configurations for the app (optional)
-│   ├── apps.py                       # App configuration
-│   ├── helpers/                      # Helper functions and utilities
-│   │   ├── __init__.py               # Python package marker for helpers
-│   │   ├── gdb_helpers.py            # Functions related to GDB interactions
-│   │   └── memory_helpers.py         # Memory visualization helpers
-│   ├── migrations/                   # Django migration files for models
-│   │   └── __init__.py               # Migration initialization
-│   ├── models.py                     # Data models (if needed, can be empty if not used)
-│   ├── templates/                    # HTML templates for rendering views
-│   │   ├── home.html                 # Main homepage template
-│   ├── tests.py                      # Unit tests for your app
-│   ├── urls.py                       # URL routing for your app's views
-│   ├── views.py                      # View functions for handling requests
-│   └── __pycache__/                  # Auto-generated Python bytecode files
-│
-├── static/                           # Static files (CSS, JS, images)
-│   ├── css/                          # Stylesheets
-│   │   └── style.css                 # Your CSS files (e.g., style.css)
-│   ├── js/                           # JavaScript files
-│   │   ├── update_memory.py                       
-│   │   └── main.js                   # JavaScript for frontend (e.g., main.js)
-└── .vscode/                          # Visual Studio Code workspace settings
-    └── settings.json                 # VS Code settings for the project
+### `c_code_visualizer/` (Root Directory)
+- **manage.py**: The script used to manage your Django project (e.g., running development servers, migrations, creating apps, etc.).
+- **db.sqlite3**: SQLite database file (Django's default database).
+- **README.md**: Documentation for your project.
+  
+### `visualize_code/` (Main App Folder)
+- **`__init__.py`**: Marks this directory as a Python package.
+- **admin.py**: Configuration file for setting up the Django Admin interface.
+- **apps.py**: Configuration file for the app.
+- **helpers/**: A directory for organizing helper functions related to specific tasks.
+  - **gdb_helpers.py**: Contains functions for interacting with the GDB debugger.
+  - **memory_helpers.py**: Contains functions for memory-related logic.
+- **migrations/**: This folder holds the migration files used to create and update the database schema.
+  - **`__init__.py`**: Marks this as a Python package for migrations.
+- **models.py**: Defines the data models (for example, if you're storing memory states).
+- **templates/**: Stores HTML templates for rendering views.
+  - **home.html**: Homepage template.
+- **tests.py**: Contains unit tests for testing the app.
+- **urls.py**: Defines URL routing for the app.
+- **views.py**: Contains view functions for handling requests and rendering responses.
 
+### `static/` (Static Files)
+- **css/**: Folder for stylesheets used in the frontend.
+  - **style.css**: CSS file for styling the app.
+- **js/**: Folder for JavaScript files.
+  - **update_memory.py**: Logic related to updating memory visualization.
+  - **main.js**: JavaScript file for frontend interactions (e.g., the code editor).
+  
 ## Screenshots
 
 ### Homepage
