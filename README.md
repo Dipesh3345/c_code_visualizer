@@ -57,7 +57,7 @@ fetch('/start_debugging', {
   .then(data => console.log(data))
   .catch(error => console.error(error));
 
-
+```
 
 ## Folder Structure
 
@@ -93,8 +93,6 @@ c_code_visualizer/
 │   │   └── main.js                   # JavaScript for frontend (e.g., main.js
 └── .vscode/                          # Visual Studio Code workspace settings
     └── settings.json                 # VS Code settings for the project
-
-## Screenshots
 
 ## Screenshots
 
