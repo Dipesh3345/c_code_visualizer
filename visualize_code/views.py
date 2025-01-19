@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 import subprocess
 import json
+import os
 
 gdb_sessions = {}
 gdb_process = None
@@ -32,7 +33,7 @@ def home(request):
                 if compile_result.returncode != 0:
                     context['error'] = compile_result.stderr
                 else:
-                    execution_result = subprocess.run(['./temp.out'], capture_output=True, text=True)
+                    execution_result = subprocess.run(['./tempfile.out'], capture_output=True, text=True)
                     context['output'] = execution_result.stdout
 
             elif action == 'visualize_memory':
@@ -41,6 +42,11 @@ def home(request):
 
         except Exception as e:
             context['error'] = str(e)
+        
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        if os.path.exists('tempfile.out'):
+            os.remove('tempfile.out')
 
     return render(request, 'visualize_code/home.html', context)
 
