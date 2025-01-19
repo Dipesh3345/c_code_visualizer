@@ -1,4 +1,3 @@
-
 let currentLine = null;
 let memoryData = [];
 let debuggingSessionStarted = false; // Track if the session has started
@@ -37,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error("Error in startDebugging:", error);
         }
+        const svg = d3.select("#memory-svg");
+        svg.selectAll("*").remove();
     }
 
     // Add stopDebugging function
@@ -105,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateVisualization() {
         document.getElementById("code-input").textContent = `Current Line: ${currentLine}`;
-        visualizeMemory(memoryData);
+        visualizeMemoryLine(memoryData);
         // Highlight the current line in the CodeMirror editor
         if (currentLine !== null) {
             const lineIndex = currentLine - 1;
@@ -127,3 +128,55 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("start-btn").addEventListener("click", startDebugging);
     document.getElementById("stop-btn").addEventListener("click", stopDebugging);
 });
+// Function to visualize memory
+// Function to visualize memory
+function visualizeMemoryLine(memoryData) {
+    const svg = d3.select("#memory-svg");
+    const blockHeight = 50;
+    const blockWidth = 150;
+    const padding = 10;
+
+    // Get the number of existing blocks to calculate the starting y-position
+    const existingBlocks = svg.selectAll("rect").size();
+    let startY = existingBlocks * (blockHeight + padding);
+
+    memoryData.forEach((block, i) => {
+        const y = startY + i * (blockHeight + padding); // Calculate the y-position for new blocks
+
+        // Draw rectangle
+        svg.append("rect")
+            .attr("x", 50)
+            .attr("y", y)
+            .attr("width", blockWidth)
+            .attr("height", blockHeight)
+            .attr("fill", "#e0f7fa")
+            .attr("stroke", "#00796b");
+
+        // Variable name (outside the box on the left)
+        svg.append("text")
+            .attr("x", 30) // Position outside the left side of the rectangle
+            .attr("y", y + blockHeight / 2 + 5)
+            .text(block.variable)
+            .attr("font-size", "14px")
+            .attr("font-family", "monospace")
+            .attr("text-anchor", "end"); // Align text to the right
+
+        // Value (centered in the rectangle)
+        svg.append("text")
+            .attr("x", 50 + blockWidth / 2)
+            .attr("y", y + blockHeight / 2 + 5)
+            .text(block.value)
+            .attr("font-size", "14px")
+            .attr("font-family", "monospace")
+            .attr("text-anchor", "middle");
+
+        // Address (outside the box on the right)
+        svg.append("text")
+            .attr("x", 50 + blockWidth + 10) // Position outside the right side of the rectangle
+            .attr("y", y + blockHeight / 2 + 5)
+            .text(block.address)
+            .attr("font-size", "12px")
+            .attr("font-family", "monospace")
+            .attr("text-anchor", "start"); // Align text to the left
+    });
+}
