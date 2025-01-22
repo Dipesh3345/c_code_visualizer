@@ -54,16 +54,27 @@
                 <p>Run the code to see the output here.</p>
             {% endif %}
         </div>
-
-        <!-- Memory Visualization Section -->
-        <div class="memory-visualization">
-            <h3>Memory Visualization</h3>
-            <svg id="memory-svg"></svg>
-            <!-- Hidden script to store memory data -->
-            <script id="memory_data" type="application/json">
-                {{ memory_data|safe|default:"[]" }}
-            </script>
-        </div>
+    </div>
+    <!-- Memory Visualization Section -->
+    <div class="memory-visualization">
+        <h3>Memory Visualization</h3>
+        <svg id="memory-svg"></svg>
+        <defs>
+            <marker
+                id="arrowhead"
+                markerWidth="10"
+                markerHeight="7"
+                refX="10"
+                refY="3.5"
+                orient="auto"
+            >
+                <path d="M0,0 L10,3.5 L0,7 Z" fill="black" />
+            </marker>
+        </defs>
+        <!-- Hidden script to store memory data -->
+        <script id="memory_data" type="application/json">
+            {{ memory_data|safe|default:"[]" }}
+        </script>
     </div>
 
     <!-- JS -->

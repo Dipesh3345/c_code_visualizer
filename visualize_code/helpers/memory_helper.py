@@ -1,10 +1,12 @@
 import re
 import platform
 import time
-
+address_base = 0x1000  # Starting address for memory allocation (mocked for demonstration)
+variable_address_map = {}
 def parse_gdb_output(output):
     memory_data = []
-    address_base = 0x1000  # Starting address for memory allocation (mocked for demonstration)
+    global address_base
+    global variable_address_map
     type_size = {
         "int": 4,
         "float": 4,
@@ -21,6 +23,7 @@ def parse_gdb_output(output):
             var_type = scalar_match.group(1).strip()
             variable = scalar_match.group(2).strip()
             value = scalar_match.group(3).strip()
+            variable_address_map[variable] = f"0x{address_base:06x}"
             memory_data.append({
                 "variable": variable,
                 "value": value,
@@ -40,6 +43,7 @@ def parse_gdb_output(output):
             array_name = array_match.group(2).strip()
             # Extract values if provided; otherwise, initialize with default values
             values_str = array_match.group(3).strip()
+            variable_address_map[variable] = f"0x{address_base:06x}"
             if values_str:  # Non-empty initializer list
                 values = [v.strip() for v in values_str.split(",")]
             else:  # Empty initializer list, default values based on type
@@ -67,7 +71,33 @@ def parse_gdb_output(output):
                 "type": f"{array_type}[]",
                 "address": addresses
             })
+        pointer_match = re.match(
+            r'^\s*\d+\s+(int|float|char|double|long|short)\s*\*\s*([\w]+)\s*=\s*([^;]+);$', 
+            line
+        )
+        if pointer_match:
+            var_type = pointer_match.group(1).strip()  # Data type (e.g., int, float, char)
+            pointer_name = pointer_match.group(2).strip()  # Pointer variable name (e.g., ptr)
+            value = pointer_match.group(3).strip()  # Assigned value (e.g., NULL, &var)
+            # Resolve address if the pointer is assigned a variable address (e.g., &a)
+            if value.startswith("&"):
+                print("HELLO")
+                referenced_variable = value[1:]  # Remove the '&' to get the variable name
+                resolved_address = variable_address_map.get(referenced_variable, "NULL")
+            else:
+                print("BYE")
+                resolved_address = value  # For cases like NULL
 
+            memory_data.append({
+            "variable": pointer_name,
+            "value": resolved_address,  # Store the assigned value (e.g., NULL or address)
+            "type": f"{var_type}*",  # Indicate it's a pointer type
+            "address": f"0x{address_base:06x}"  # Assign a unique address
+            })
+
+            # Increment base address by the size of the pointer (typically 8 bytes for 64-bit systems)
+            address_base += 8
+            print(memory_data)
     return memory_data
 
 
@@ -97,12 +127,16 @@ def read_gdb_output(gdb_process, count):
             - "matched_line": The matched line (variable declaration, assignment, or valid C statement).
             - "function_name": The current function name (if extracted).
     """
-     # Patterns for matching
+    # Patterns for matching
     statement_pattern = r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\[.*\]\s*=\s*{.*};|' \
-                        r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\[.*\];|' \
-                        r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
-                        r'^\s*\d+\s+\w+\s*=\s*.+;|' \
-                        r'^\s*\d+\s+.*;$'
+                    r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\[.*\];|' \
+                    r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
+                    r'^\s*\d+\s+\w+\s*=\s*.+;|' \
+                    r'^\s*\d+\s+(int|float|char|double|long|short)\s*\*\s*\w+\s*=\s*[^;]+;|' \
+                    r'^\s*\d+\s+(int|float|char|double|long|short)\s*\*\s*\w+\s*;|' \
+                    r'^\s*\d+\s+.*;$'
+
+
     function_name_pattern = r'(?<=in\s)(\w+)\s*(?=\()'
 
     timeout = 10  # Timeout in seconds

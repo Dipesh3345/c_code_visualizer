@@ -2,6 +2,8 @@ let currentLine = null;
 let memoryData = [];
 let debuggingSessionStarted = false; // Track if the session has started
 let highlightedLine = null; /// Track if the session has started
+const variablePositions = {};
+const variableAddressMap = {};
 
 // Get CSRF token from the meta tag
 const csrfToken = document.querySelector('[name="csrf-token"]').getAttribute('content');
@@ -150,46 +152,55 @@ document.addEventListener("DOMContentLoaded", () => {
 function visualizeMemoryLine(memoryData, functionName) {
     const svg = d3.select("#memory-svg");
     const blockHeight = 50;
-    const blockWidth = 50;
-    const padding = 10;
-    const arrayPadding = 20; // Extra padding between array elements
+    const blockWidth = 75;
+    const padding = 25;
 
-    // Add function name at the top
-    svg.append("text")
-        .attr("x", 50) // Position it at the left margin
-        .attr("y", 30) // Position it at the top of the SVG
-        .text(`Function: ${functionName}`)
-        .attr("font-size", "16px")
-        .attr("font-family", "monospace")
-        .attr("font-weight", "bold")
-        .attr("text-anchor", "start")
-        .attr("fill", "#000");
+    // Add function name at the top if not already present
+    if (svg.selectAll(".function-name").empty()) {
+        svg.append("text")
+            .attr("class", "function-name")
+            .attr("x", 50)
+            .attr("y", 30)
+            .text(`Function: ${functionName}`)
+            .attr("font-size", "16px")
+            .attr("font-family", "monospace")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "start")
+            .attr("fill", "#000");
+    }
 
-    // Get the number of existing blocks to calculate the starting y-position
-    const existingBlocks = svg.selectAll("rect").size();
-    let startY = existingBlocks * (blockHeight + padding) + 60; 
+    // Calculate the current starting Y position dynamically
+    let currentY = 60;
 
-    memoryData.forEach((block, i) => {
+    // Find the height of the existing elements to append new ones below
+    svg.selectAll("rect").each(function () {
+        const rectY = +d3.select(this).attr("y") + blockHeight + padding;
+        if (rectY > currentY) {
+            currentY = rectY;
+        }
+    });
+
+    // Add memory blocks dynamically
+    memoryData.forEach((block) => {
         const { variable, value, type, address } = block;
-    
-        // Check if the variable is an array
+
         if (Array.isArray(value) && Array.isArray(address)) {
-            const arrayStartX = 50; // Starting x-position for the array
-            const arrayStartY = startY + i * (blockHeight + padding); // Starting y-position for the array
-    
+            const arrayStartX = 100; // Starting x-position for the array
+            const arrayStartY = currentY;
+
             // Label the array name and type
             svg.append("text")
-                .attr("x", arrayStartX - 20) // Position slightly to the left of the first block
+                .attr("x", arrayStartX - 10)
                 .attr("y", arrayStartY + blockHeight / 2 + 5)
                 .text(`${variable} (${type})`)
                 .attr("font-size", "14px")
                 .attr("font-family", "monospace")
-                .attr("text-anchor", "end"); // Right-aligned
-    
+                .attr("text-anchor", "end");
+
             // Visualize each element of the array
             value.forEach((val, idx) => {
-                const x = arrayStartX + idx * (blockWidth + padding); // Calculate x-position for each array element
-    
+                const x = arrayStartX + idx * (blockWidth + padding);
+
                 // Draw a rectangle for the array element
                 svg.append("rect")
                     .attr("x", x)
@@ -198,64 +209,116 @@ function visualizeMemoryLine(memoryData, functionName) {
                     .attr("height", blockHeight)
                     .attr("fill", "#e8f5e9")
                     .attr("stroke", "#388e3c");
-    
+
                 // Display the value inside the rectangle
                 svg.append("text")
-                    .attr("x", x + blockWidth / 2) // Centered horizontally in the box
-                    .attr("y", arrayStartY + blockHeight / 2 + 5) // Centered vertically in the box
+                    .attr("x", x + blockWidth / 2)
+                    .attr("y", arrayStartY + blockHeight / 2 + 5)
                     .text(val)
                     .attr("font-size", "14px")
                     .attr("font-family", "monospace")
                     .attr("text-anchor", "middle");
-    
+
                 // Display the address below the rectangle
                 svg.append("text")
-                    .attr("x", x + blockWidth / 2) // Centered below the box
-                    .attr("y", arrayStartY + blockHeight + 15) // Slightly below the box
+                    .attr("x", x + blockWidth / 2)
+                    .attr("y", arrayStartY + blockHeight + 15)
                     .text(address[idx])
                     .attr("font-size", "12px")
                     .attr("font-family", "monospace")
                     .attr("text-anchor", "middle");
             });
+
+            // Update currentY for the next block
+            currentY += blockHeight + padding;
         } else {
-            // Handle single variables
-            const y = startY + i * (blockHeight + padding); // Calculate the y-position for new blocks
-    
+            // Single variable
+            const y = currentY;
+
             // Draw rectangle
             svg.append("rect")
-                .attr("x", 50)
+                .attr("x", 100)
                 .attr("y", y)
                 .attr("width", blockWidth)
                 .attr("height", blockHeight)
                 .attr("fill", "#e0f7fa")
                 .attr("stroke", "#00796b");
-    
-            // Variable name (outside the box on the left)
+
+            // Variable name
             svg.append("text")
-                .attr("x", 30) // Position outside the left side of the rectangle
+                .attr("x", 50)
                 .attr("y", y + blockHeight / 2 + 5)
                 .text(variable)
                 .attr("font-size", "14px")
                 .attr("font-family", "monospace")
-                .attr("text-anchor", "end"); // Align text to the right
-    
-            // Value (centered in the rectangle)
+                .attr("text-anchor", "end");
+
+            // Value
             svg.append("text")
-                .attr("x", 50 + blockWidth / 2)
+                .attr("x", 100 + blockWidth / 2)
                 .attr("y", y + blockHeight / 2 + 5)
                 .text(value)
                 .attr("font-size", "14px")
                 .attr("font-family", "monospace")
                 .attr("text-anchor", "middle");
-    
-            // Address (outside the box on the right)
+
+            // Address
             svg.append("text")
-                .attr("x", 50 + blockWidth + 10) // Position outside the right side of the rectangle
+                .attr("x", 100 + blockWidth + 10)
                 .attr("y", y + blockHeight / 2 + 5)
                 .text(address)
                 .attr("font-size", "12px")
                 .attr("font-family", "monospace")
-                .attr("text-anchor", "start"); // Align text to the left
+                .attr("text-anchor", "start");
+            
+            // Store variable position for future reference
+            variablePositions[variable] = {
+                x: 100 + blockWidth / 2,
+                y: y + blockHeight / 2
+            };
+
+            // Update the address map
+            variableAddressMap[variable] = address;
+
+            console.log(variablePositions)
+            // Check if the variable is a pointer
+            if (type.endsWith('*') && value !== "NULL") {
+                console.log("Hello")
+                // Find the referenced variable by its address
+                const referencedVariable = Object.keys(variablePositions).find(
+                    (key) => variableAddressMap[key] === value
+                );
+
+                if (referencedVariable) {
+                    const targetPos = variablePositions[referencedVariable];
+                    console.log(targetPos)
+                    // Draw an arrow from the pointer to the referenced variable
+
+                    // Add the marker definition
+                    svg.append("defs")
+                        .append("marker")
+                        .attr("id", "arrowhead")
+                        .attr("markerWidth", 10)
+                        .attr("markerHeight", 7)
+                        .attr("refX", 10)
+                        .attr("refY", 3.5)
+                        .attr("orient", "auto")
+                        .append("path")
+                        .attr("d", "M0,0 L10,3.5 L0,7 Z")
+                        .attr("fill", "black");
+                        
+                    svg.append("line")
+                        .attr("x1", 50 + blockWidth)
+                        .attr("y1", y + blockHeight / 2 - 20)
+                        .attr("x2", targetPos.x)
+                        .attr("y2", targetPos.y + 20)
+                        .attr("stroke", "black")
+                        .attr("stroke-width", 2)
+                        .attr("marker-end", "url(#arrowhead)"); // Add an arrowhead marker
+                }
+            }
+            // Update currentY for the next block
+            currentY += blockHeight + padding;
         }
     });
 }
