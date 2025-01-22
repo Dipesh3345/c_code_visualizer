@@ -4,17 +4,68 @@ import time
 
 def parse_gdb_output(output):
     memory_data = []
+    address_base = 0x1000  # Starting address for memory allocation (mocked for demonstration)
+    type_size = {
+        "int": 4,
+        "float": 4,
+        "char": 1
+    }
 
     for line in output.splitlines():
-        # Match variable declarations with line numbers, e.g., "5       char c = 'X';"
-        match = re.match(r'^\s*\d+\s+(?:int|float|char|double|long|short|unsigned)?\s*([\w]+)\s*=\s*(.+);$', line)
-        if match:
-            variable = match.group(1).strip()  # Extract the variable name
-            value = match.group(2).strip()    # Extract the value
+        # Match scalar variable declarations, e.g., "5       int x = 10;"
+        scalar_match = re.match(
+            r'^\s*\d+\s+(int|float|char)\s+([\w]+)\s*=\s*(.+);$', 
+            line
+        )
+        if scalar_match:
+            var_type = scalar_match.group(1).strip()
+            variable = scalar_match.group(2).strip()
+            value = scalar_match.group(3).strip()
             memory_data.append({
                 "variable": variable,
                 "value": value,
-                "address": f"0x{hash(variable) & 0xFFFFFF:06x}"
+                "type": var_type,
+                "address": f"0x{address_base:06x}"
+            })
+            # Increment base address by the size of the type
+            address_base += type_size.get(var_type, 4)
+
+        # Match array declarations, e.g., "6       int arr[] = {1, 2, 3, 4};"
+        array_match = re.match(
+            r'^\s*\d+\s+(int|float|char)\s+([\w]+)\s*\[\d*\]\s*=\s*\{\s*([^}]*)\s*\};$', 
+            line
+        )
+        if array_match:
+            array_type = array_match.group(1).strip()
+            array_name = array_match.group(2).strip()
+            # Extract values if provided; otherwise, initialize with default values
+            values_str = array_match.group(3).strip()
+            if values_str:  # Non-empty initializer list
+                values = [v.strip() for v in values_str.split(",")]
+            else:  # Empty initializer list, default values based on type
+                array_size_match = re.search(r'\[(\d+)\]', line)
+                if array_size_match:
+                    array_size = int(array_size_match.group(1))
+                    default_value = {
+                        "int": "0",
+                        "float": "0.0",
+                        "char": "'\\0'"
+                    }.get(array_type, "0")  # Default to "0" if type is unknown
+                    values = [default_value] * array_size
+                else:
+                    values = []  # Handle edge case if no size is specified
+
+            # Generate continuous memory addresses for array elements
+            addresses = []
+            for _ in values:
+                addresses.append(f"0x{address_base:06x}")
+                address_base += type_size.get(array_type, 4)
+
+            memory_data.append({
+                "variable": array_name,
+                "value": values,
+                "type": f"{array_type}[]",
+                "address": addresses
             })
 
     return memory_data
@@ -46,8 +97,10 @@ def read_gdb_output(gdb_process, count):
             - "matched_line": The matched line (variable declaration, assignment, or valid C statement).
             - "function_name": The current function name (if extracted).
     """
-    # Patterns for matching
-    statement_pattern = r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
+     # Patterns for matching
+    statement_pattern = r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\[.*\]\s*=\s*{.*};|' \
+                        r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\[.*\];|' \
+                        r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
                         r'^\s*\d+\s+\w+\s*=\s*.+;|' \
                         r'^\s*\d+\s+.*;$'
     function_name_pattern = r'(?<=in\s)(\w+)\s*(?=\()'
@@ -81,7 +134,7 @@ def read_gdb_output(gdb_process, count):
 
             # Remove the `(gdb)` prompt
             line = line.replace("(gdb)", "").strip()
-
+            print(f"Raw line: {line}")
             # Check if the line matches a variable/statement
             if not matched_line:
                 statement_match = re.search(statement_pattern, line)
@@ -90,7 +143,8 @@ def read_gdb_output(gdb_process, count):
                     if count == 0:
                         line = gdb_process.stdout.readline()
                         line = gdb_process.stdout.readline()
-
+            
+            print(f"Matched Line: {matched_line}")
             # Check if the line contains the function name (from `info frame`)
             if not function_name:
                 function_match = re.search(function_name_pattern, line)
@@ -116,15 +170,27 @@ def read_gdb_output(gdb_process, count):
 
 def extract_memory_data(c_code):
     """
-    Simulates memory management by extracting variables and their values from C code.
+    Simulates memory management by extracting variables, arrays, and their values from C code.
+    
+    Args:
+        c_code (str): The C code to extract memory data from.
+    
+    Returns:
+        list: A list of dictionaries containing variable information with fields:
+            - "variable": Name of the variable.
+            - "value": The assigned value(s).
+            - "type": The type of the variable (int, float, char, etc.).
+            - "address": Simulated memory address.
     """
     memory_data = []
-    # Regular expression to match simple variable declarations (int, float, char)
-    var_pattern = r'\b(int|float|char)\s+(\w+)\s*=\s*([^;]+);'
 
-    for match in re.finditer(var_pattern, c_code):
+    # Regular expressions for simple variables and arrays
+    simple_var_pattern = r'\b(int|float|char)\s+(\w+)\s*=\s*([^;]+);'
+    array_pattern = r'\b(int|float|char)\s+(\w+)\s*\[.*\]\s*=\s*\{([^}]+)\};'
+
+    # Extract simple variables
+    for match in re.finditer(simple_var_pattern, c_code):
         var_type, var_name, var_value = match.groups()
-        # Generate a mock memory address (hexadecimal, for visualization)
         memory_address = f"0x{hash(var_name) & 0xFFFFFF:06x}"
 
         memory_data.append({
@@ -134,4 +200,20 @@ def extract_memory_data(c_code):
             "address": memory_address,
         })
 
+    # Extract arrays
+    for match in re.finditer(array_pattern, c_code):
+        var_type, var_name, array_values = match.groups()
+        values = [value.strip() for value in array_values.split(",")]
+
+        # Simulate continuous memory allocation for array elements
+        base_address = hash(var_name) & 0xFFFFFF
+        addresses = [f"0x{(base_address + i * 4) & 0xFFFFFF:06x}" for i in range(len(values))]
+
+        memory_data.append({
+            "variable": var_name,
+            "value": values,
+            "type": f"{var_type}[]",
+            "address": addresses,
+        })
+    print(f"memory_data:{memory_data}")
     return memory_data

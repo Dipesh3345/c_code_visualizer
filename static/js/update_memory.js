@@ -98,6 +98,11 @@ document.addEventListener("DOMContentLoaded", () => {
             currentLine = data.current_line;
             memoryData = data.memory_state;
             functionName = data.function_name;
+            memoryData.forEach(value => {
+                if (value !== undefined) {
+                    console.log(value);
+                }
+            });
             updateVisualization();
         } catch (error) {
             console.error("Error in stepForward:", error);
@@ -142,12 +147,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("stop-btn").addEventListener("click", stopDebugging);
 });
 // Function to visualize memory
-// Function to visualize memory
 function visualizeMemoryLine(memoryData, functionName) {
     const svg = d3.select("#memory-svg");
     const blockHeight = 50;
-    const blockWidth = 150;
+    const blockWidth = 50;
     const padding = 10;
+    const arrayPadding = 20; // Extra padding between array elements
 
     // Add function name at the top
     svg.append("text")
@@ -165,42 +170,92 @@ function visualizeMemoryLine(memoryData, functionName) {
     let startY = existingBlocks * (blockHeight + padding) + 60; 
 
     memoryData.forEach((block, i) => {
-        const y = startY + i * (blockHeight + padding); // Calculate the y-position for new blocks
-
-        // Draw rectangle
-        svg.append("rect")
-            .attr("x", 50)
-            .attr("y", y)
-            .attr("width", blockWidth)
-            .attr("height", blockHeight)
-            .attr("fill", "#e0f7fa")
-            .attr("stroke", "#00796b");
-
-        // Variable name (outside the box on the left)
-        svg.append("text")
-            .attr("x", 30) // Position outside the left side of the rectangle
-            .attr("y", y + blockHeight / 2 + 5)
-            .text(block.variable)
-            .attr("font-size", "14px")
-            .attr("font-family", "monospace")
-            .attr("text-anchor", "end"); // Align text to the right
-
-        // Value (centered in the rectangle)
-        svg.append("text")
-            .attr("x", 50 + blockWidth / 2)
-            .attr("y", y + blockHeight / 2 + 5)
-            .text(block.value)
-            .attr("font-size", "14px")
-            .attr("font-family", "monospace")
-            .attr("text-anchor", "middle");
-
-        // Address (outside the box on the right)
-        svg.append("text")
-            .attr("x", 50 + blockWidth + 10) // Position outside the right side of the rectangle
-            .attr("y", y + blockHeight / 2 + 5)
-            .text(block.address)
-            .attr("font-size", "12px")
-            .attr("font-family", "monospace")
-            .attr("text-anchor", "start"); // Align text to the left
+        const { variable, value, type, address } = block;
+    
+        // Check if the variable is an array
+        if (Array.isArray(value) && Array.isArray(address)) {
+            const arrayStartX = 50; // Starting x-position for the array
+            const arrayStartY = startY + i * (blockHeight + padding); // Starting y-position for the array
+    
+            // Label the array name and type
+            svg.append("text")
+                .attr("x", arrayStartX - 20) // Position slightly to the left of the first block
+                .attr("y", arrayStartY + blockHeight / 2 + 5)
+                .text(`${variable} (${type})`)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "end"); // Right-aligned
+    
+            // Visualize each element of the array
+            value.forEach((val, idx) => {
+                const x = arrayStartX + idx * (blockWidth + padding); // Calculate x-position for each array element
+    
+                // Draw a rectangle for the array element
+                svg.append("rect")
+                    .attr("x", x)
+                    .attr("y", arrayStartY)
+                    .attr("width", blockWidth)
+                    .attr("height", blockHeight)
+                    .attr("fill", "#e8f5e9")
+                    .attr("stroke", "#388e3c");
+    
+                // Display the value inside the rectangle
+                svg.append("text")
+                    .attr("x", x + blockWidth / 2) // Centered horizontally in the box
+                    .attr("y", arrayStartY + blockHeight / 2 + 5) // Centered vertically in the box
+                    .text(val)
+                    .attr("font-size", "14px")
+                    .attr("font-family", "monospace")
+                    .attr("text-anchor", "middle");
+    
+                // Display the address below the rectangle
+                svg.append("text")
+                    .attr("x", x + blockWidth / 2) // Centered below the box
+                    .attr("y", arrayStartY + blockHeight + 15) // Slightly below the box
+                    .text(address[idx])
+                    .attr("font-size", "12px")
+                    .attr("font-family", "monospace")
+                    .attr("text-anchor", "middle");
+            });
+        } else {
+            // Handle single variables
+            const y = startY + i * (blockHeight + padding); // Calculate the y-position for new blocks
+    
+            // Draw rectangle
+            svg.append("rect")
+                .attr("x", 50)
+                .attr("y", y)
+                .attr("width", blockWidth)
+                .attr("height", blockHeight)
+                .attr("fill", "#e0f7fa")
+                .attr("stroke", "#00796b");
+    
+            // Variable name (outside the box on the left)
+            svg.append("text")
+                .attr("x", 30) // Position outside the left side of the rectangle
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(variable)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "end"); // Align text to the right
+    
+            // Value (centered in the rectangle)
+            svg.append("text")
+                .attr("x", 50 + blockWidth / 2)
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(value)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "middle");
+    
+            // Address (outside the box on the right)
+            svg.append("text")
+                .attr("x", 50 + blockWidth + 10) // Position outside the right side of the rectangle
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(address)
+                .attr("font-size", "12px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "start"); // Align text to the left
+        }
     });
 }

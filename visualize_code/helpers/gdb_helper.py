@@ -23,7 +23,7 @@ class GDBSession:
                 file.write(c_code)
 
             compile_result = subprocess.run(
-                ['gcc', '-g', 'temp.c', '-o', 'temp.out'], 
+                ['gcc', '-g', '-O0', 'temp.c', '-o', 'temp.out'], 
                 capture_output=True, text=True
             )
             if compile_result.returncode != 0:
@@ -75,9 +75,9 @@ class GDBSession:
             if not self.function_name:
                 self.function_name = gdb_output.get("function_name")
             memory_state = parse_gdb_output(current_line) if current_line else {}
+            print(f"Memory State SF: {memory_state}")
 
             current_line = extract_current_line(current_line)
-            print(current_line)
             # Update session state
             self.current_line = current_line
             self.memory_state = memory_state
