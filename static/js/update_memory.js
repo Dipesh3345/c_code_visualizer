@@ -103,25 +103,38 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error in stepForward:", error);
         }
     }
-
     function updateVisualization() {
-        document.getElementById("code-input").textContent = `Current Line: ${currentLine}`;
-        visualizeMemoryLine(memoryData,functionName);
-        // Highlight the current line in the CodeMirror editor
-        if (currentLine !== null) {
-            const lineIndex = currentLine - 1;
-    
-            if (highlightedLine !== null) {
-                editor.removeLineClass(highlightedLine, "background", "line-highlight");
-            }
-            
-            editor.addLineClass(lineIndex, "background", "line-highlight");
-            highlightedLine = lineIndex;
-    
-            // Scroll to the highlighted line
-            editor.scrollIntoView({ line: lineIndex, ch: 0 }, 100); // Smooth scrolling
+        // Validate editor instance
+        if (!editor) {
+            console.error("Error: editor instance is not initialized.");
+            return;
         }
+    
+        // Validate currentLine
+        const totalLines = editor.lineCount(); // Get the total number of lines in the editor
+        if (currentLine === null || currentLine === undefined || currentLine <= 0 || currentLine > totalLines) {
+            console.error(`Error: Invalid currentLine value (${currentLine}). Must be between 1 and ${totalLines}.`);
+            return;
+        }
+    
+        // Update the current line display
+        document.getElementById("code-input").textContent = `Current Line: ${currentLine}`;
+        visualizeMemoryLine(memoryData, functionName);
+    
+        // Highlight the current line in the CodeMirror editor
+        const lineIndex = currentLine - 1;
+    
+        if (highlightedLine !== null) {
+            editor.removeLineClass(highlightedLine, "background", "line-highlight");
+        }
+    
+        editor.addLineClass(lineIndex, "background", "line-highlight");
+        highlightedLine = lineIndex;
+    
+        // Scroll to the highlighted line
+        editor.scrollIntoView({ line: lineIndex, ch: 0 }, 100); // Smooth scrolling
     }
+    
 
     // Event listeners for the buttons
     document.getElementById("next-button").addEventListener("click", stepForward);
