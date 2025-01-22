@@ -4,8 +4,11 @@ import json
 import time
 
 gdb_sessions = {}
+count = None
+function_name = None
 
 def start_debugging_session(request):
+    global count
     try:
         data = json.loads(request.body)
         c_code = data.get('c_code', '').strip()
@@ -38,20 +41,28 @@ def start_debugging_session(request):
             "process": gdb_process,
             "current_line": None,
             "memory_state": [],
+            "function_name": None,
             "history": []
         }
 
         # Set breakpoint at the start of main and run the program
         gdb_process.stdin.write("break temp.c:1\n")
         gdb_process.stdin.write("run\n")
+        gdb_process.stdin.write("info frame\n")
         gdb_process.stdin.flush()
+
+        count = 0
+
 
         return {"message": "Debugging session started."}
 
     except Exception as e:
         return {"error": str(e)}  # Ensure that we return a dictionary for errors
 
+
 def step_forward_session(request):
+    global count
+    global function_name
     try:
         session_id = request.session.session_key
         if not session_id:
@@ -67,25 +78,26 @@ def step_forward_session(request):
         gdb_process.stdin.write("next\n")
         gdb_process.stdin.flush()
 
-        # Add a small delay to ensure GDB has time to process
-        time.sleep(0.1)
-
-        # Read the output after stepping forward
-        output = read_gdb_output(gdb_process)
-
-        if not output:
+        gdb_output = read_gdb_output(gdb_process, count)
+        count += 1
+        if not gdb_output:
             return {
                 "current_line": None,
+                "function_name": None,
                 "memory_state": {},
                 "status": "completed"
             }
 
-        current_line = extract_current_line(output)
-        memory_state = parse_gdb_output(output)
+        # Extract details from GDB output
+        current_line = gdb_output.get("matched_line")
+        if not function_name:
+            function_name = gdb_output.get("function_name")
+        memory_state = parse_gdb_output(current_line) if current_line else {}
 
         # Update session state
         gdb_session["current_line"] = current_line
         gdb_session["memory_state"] = memory_state
+        gdb_session["function_name"] = function_name
         gdb_session["history"].append({
             "line": current_line,
             "memory_state": memory_state
@@ -94,11 +106,12 @@ def step_forward_session(request):
         return {
             "current_line": current_line,
             "memory_state": memory_state,
+            "function_name": function_name,
             "status": "running"
         }
 
     except Exception as e:
-        return {"error": str(e)}  # Ensure that we return a dictionary for errors
+        return {"error": str(e)}
 
 def stop_debugging_session(request):
     try:

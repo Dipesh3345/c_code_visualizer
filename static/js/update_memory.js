@@ -96,8 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             currentLine = data.current_line;
-            console.log(currentLine)
             memoryData = data.memory_state;
+            functionName = data.function_name;
             updateVisualization();
         } catch (error) {
             console.error("Error in stepForward:", error);
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateVisualization() {
         document.getElementById("code-input").textContent = `Current Line: ${currentLine}`;
-        visualizeMemoryLine(memoryData);
+        visualizeMemoryLine(memoryData,functionName);
         // Highlight the current line in the CodeMirror editor
         if (currentLine !== null) {
             const lineIndex = currentLine - 1;
@@ -130,15 +130,26 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 // Function to visualize memory
 // Function to visualize memory
-function visualizeMemoryLine(memoryData) {
+function visualizeMemoryLine(memoryData, functionName) {
     const svg = d3.select("#memory-svg");
     const blockHeight = 50;
     const blockWidth = 150;
     const padding = 10;
 
+    // Add function name at the top
+    svg.append("text")
+        .attr("x", 50) // Position it at the left margin
+        .attr("y", 30) // Position it at the top of the SVG
+        .text(`Function: ${functionName}`)
+        .attr("font-size", "16px")
+        .attr("font-family", "monospace")
+        .attr("font-weight", "bold")
+        .attr("text-anchor", "start")
+        .attr("fill", "#000");
+
     // Get the number of existing blocks to calculate the starting y-position
     const existingBlocks = svg.selectAll("rect").size();
-    let startY = existingBlocks * (blockHeight + padding);
+    let startY = existingBlocks * (blockHeight + padding) + 60; 
 
     memoryData.forEach((block, i) => {
         const y = startY + i * (blockHeight + padding); // Calculate the y-position for new blocks

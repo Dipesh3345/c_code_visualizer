@@ -1,9 +1,8 @@
-#include <stdio.h>
-int main() {
-    int a = 10;
-    float b = 3.14;
-    double c = 1.111;
-    printf("%d\n",a);
-    printf("%.2f",b);
+#include<stdio.h>
+int main()
+{
+    int a[5];
+    float b = 20.5;
+    char c = 'X';
     return 0;
 }

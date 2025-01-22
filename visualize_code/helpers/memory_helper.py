@@ -33,56 +33,85 @@ def extract_current_line(gdb_output):
 
     return current_line
 
-def read_gdb_output(gdb_process):
-    """
-    Reads the GDB output and captures the current line after a 'next' command
-    """
-    output = ""
-    pattern = r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
-              r'^\s*\d+\s+\w+\s*=\s*.+;|' \
-              r'^\s*\d+\s+.*;$'  # Matches variable declarations, assignments, or valid C statements
 
+def read_gdb_output(gdb_process, count):
+    """
+    Reads the GDB output and captures the current line and the current function name.
+    
+    Args:
+        gdb_process: The subprocess.Popen object for the running GDB process.
+    
+    Returns:
+        A dictionary containing:
+            - "matched_line": The matched line (variable declaration, assignment, or valid C statement).
+            - "function_name": The current function name (if extracted).
+    """
+    # Patterns for matching
+    statement_pattern = r'^\s*\d+\s+(int|float|char|double|long|short)\s+\w+\s*=\s*[^;]+;|' \
+                        r'^\s*\d+\s+\w+\s*=\s*.+;|' \
+                        r'^\s*\d+\s+.*;$'
+    function_name_pattern = r'(?<=in\s)(\w+)\s*(?=\()'
+
+    timeout = 10  # Timeout in seconds
+    start_time = time.time()
+    output = ""
+    matched_line = None
+    function_name = None
+    i = 0
+    print(count)
     try:
         is_windows = platform.system() == "Windows"
-        start_time = time.time()
-        timeout = 10
 
         while True:
+            # Read a line from GDB's output
             if is_windows:
                 line = gdb_process.stdout.readline()
-                if not line:
+            else:
+                line = gdb_process.stdout.read(1).decode("utf-8")
+            
+            if not line:
+                # Exit the loop if no output is received within the timeout
+                if time.time() - start_time > timeout:
+                    print("Timeout waiting for GDB response.")
                     break
-                line = line.strip()
-                # print(f"Debug - Raw line: {line}")  # Debug print
+                continue
 
-                # Process the line to remove the `(gdb)` prompt
-                if line.startswith("(gdb)"):
-                    line = line.replace("(gdb)", "").strip()
+            line = line.strip()
+            output += line + "\n"  # Accumulate output for debugging if needed
 
-                # Check each line against the pattern
-                for subline in line.split("(gdb)"):
-                    subline = subline.strip()
-                    if not subline:
-                        continue
+            # Remove the `(gdb)` prompt
+            line = line.replace("(gdb)", "").strip()
 
-                    match = re.search(pattern, subline)
-                    if match:
-                        matched_line = match.group(0)
-                        # print(f"Debug - Processing line: {subline}")
-                        # print(f"Debug - Matched line: {matched_line}")
-                        return matched_line
+            # Check if the line matches a variable/statement
+            if not matched_line:
+                statement_match = re.search(statement_pattern, line)
+                if statement_match:
+                    matched_line = statement_match.group(0)
+                    if count == 0:
+                        line = gdb_process.stdout.readline()
+                        line = gdb_process.stdout.readline()
 
+            # Check if the line contains the function name (from `info frame`)
+            if not function_name:
+                function_match = re.search(function_name_pattern, line)
+                if function_match:
+                    function_name = function_match.group(0)
+
+            # Return once both matched_line and function_name are found
+            if matched_line or function_name:
+                return {"matched_line": matched_line, "function_name": function_name}
+
+            # Break if timeout occurs
             if time.time() - start_time > timeout:
-                print("Timeout waiting for GDB response")
+                print("Timeout waiting for GDB response.")
                 break
-
-            # time.sleep(0.1)
 
     except Exception as e:
         print(f"Error reading GDB output: {e}")
-        print(f"Current output buffer: {output}")  # Debug print
-    
-    return None
+        print(f"Partial Output: {output}")  # Debugging information
+
+    # Return results, even if partially found
+    return {"matched_line": matched_line, "function_name": function_name}
 
 
 def extract_memory_data(c_code):
