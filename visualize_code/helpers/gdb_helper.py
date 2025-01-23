@@ -1,7 +1,6 @@
 from .memory_helper import read_gdb_output,parse_gdb_output,extract_current_line
 import subprocess
 import json
-import time
 
 class GDBSession:
     def __init__(self, session_id):

@@ -39,11 +39,12 @@ def parse_gdb_output(output):
             line
         )
         if array_match:
+            print("Hello")
             array_type = array_match.group(1).strip()
             array_name = array_match.group(2).strip()
             # Extract values if provided; otherwise, initialize with default values
             values_str = array_match.group(3).strip()
-            variable_address_map[variable] = f"0x{address_base:06x}"
+            variable_address_map[array_name] = f"0x{address_base:06x}"
             if values_str:  # Non-empty initializer list
                 values = [v.strip() for v in values_str.split(",")]
             else:  # Empty initializer list, default values based on type
@@ -81,11 +82,9 @@ def parse_gdb_output(output):
             value = pointer_match.group(3).strip()  # Assigned value (e.g., NULL, &var)
             # Resolve address if the pointer is assigned a variable address (e.g., &a)
             if value.startswith("&"):
-                print("HELLO")
                 referenced_variable = value[1:]  # Remove the '&' to get the variable name
                 resolved_address = variable_address_map.get(referenced_variable, "NULL")
             else:
-                print("BYE")
                 resolved_address = value  # For cases like NULL
 
             memory_data.append({
@@ -97,7 +96,7 @@ def parse_gdb_output(output):
 
             # Increment base address by the size of the pointer (typically 8 bytes for 64-bit systems)
             address_base += 8
-            print(memory_data)
+    print(memory_data)
     return memory_data
 
 
