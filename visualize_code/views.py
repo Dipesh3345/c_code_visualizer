@@ -66,6 +66,7 @@ def start_debugging(request):
     if request.method == "POST":
         try:
             response = start_debugging_session(request)
+            print(response)
             return JsonResponse(response)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

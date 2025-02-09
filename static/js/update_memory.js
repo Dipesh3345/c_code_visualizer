@@ -7,9 +7,184 @@ const variableAddressMap = {};
 
 // Get CSRF token from the meta tag
 const csrfToken = document.querySelector('[name="csrf-token"]').getAttribute('content');
+async function updateMemoryVisualization(memoryState, functionName) {
+    const svg = d3.select("#memory-svg");
+    svg.selectAll("*").remove();
+    const blockHeight = 50;
+    const blockWidth = 75;
+    const padding = 25;
+
+    svg.selectAll("*").remove();
+
+    if (svg.selectAll(".function-name").empty()) {
+        svg.append("text")
+            .attr("class", "function-name")
+            .attr("x", 50)
+            .attr("y", 30)
+            .text(`Function: ${functionName}`)
+            .attr("font-size", "16px")
+            .attr("font-family", "monospace")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "start")
+            .attr("fill", "#000");
+    }
+
+    let currentY = 60;
+
+    svg.selectAll("rect").each(function () {
+        const rectY = +d3.select(this).attr("y") + blockHeight + padding;
+        if (rectY > currentY) {
+            currentY = rectY;
+        }
+    });
+
+    Object.entries(memoryState).forEach(([variable, [value, address, type]]) => {
+        if (typeof value === "string" && value.startsWith("{")) {
+            value = value.replace(/[{}]/g, "").split(",").map(v => v.trim());
+        }
+
+        if (Array.isArray(value)) {
+            console.log("Array Detected")
+            const arrayStartX = 100;
+            const arrayStartY = currentY;
+
+            svg.append("text")
+                .attr("x", arrayStartX - 50)
+                .attr("y", arrayStartY + blockHeight / 2 + 5)
+                .text(`${variable}`)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "end");
+
+            value.forEach((val, idx) => {
+                const x = arrayStartX + idx * (blockWidth + padding);
+                svg.append("rect")
+                    .attr("x", x)
+                    .attr("y", arrayStartY)
+                    .attr("width", blockWidth)
+                    .attr("height", blockHeight)
+                    .attr("fill", "#e8f5e9")
+                    .attr("stroke", "#388e3c");
+                svg.append("text")
+                    .attr("x", x + blockWidth / 2)
+                    .attr("y", arrayStartY + blockHeight / 2 + 5)
+                    .text(val)
+                    .attr("font-size", "14px")
+                    .attr("font-family", "monospace")
+                    .attr("text-anchor", "middle");
+                if (Array.isArray(address)) {
+                    svg.append("text")
+                        .attr("x", x + blockWidth / 2)
+                        .attr("y", arrayStartY + blockHeight + 15)
+                        .text(address[idx] || "")
+                        .attr("font-size", "12px")
+                        .attr("font-family", "monospace")
+                        .attr("text-anchor", "middle");
+                }
+            });
+            currentY += blockHeight + padding;
+        } else {
+            const y = currentY;
+            svg.append("rect")
+                .attr("x", 100)
+                .attr("y", y)
+                .attr("width", blockWidth)
+                .attr("height", blockHeight)
+                .attr("fill", "#e0f7fa")
+                .attr("stroke", "#00796b");
+            svg.append("text")
+                .attr("x", 50)
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(variable)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "end");
+            svg.append("text")
+                .attr("x", 100 + blockWidth / 2)
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(value)
+                .attr("font-size", "14px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "middle");
+            svg.append("text")
+                .attr("x", 100 + blockWidth + 10)
+                .attr("y", y + blockHeight / 2 + 5)
+                .text(address)
+                .attr("font-size", "12px")
+                .attr("font-family", "monospace")
+                .attr("text-anchor", "start");
+
+            currentY += blockHeight + padding;
+        }
+    });
+}
+function showLoadingInSvg() {
+    const svg = d3.select("#memory-svg");
+
+    // Clear existing elements
+    svg.selectAll("*").remove();
+
+    // Add loading text
+    svg.append("text")
+        .attr("id", "loading-text")
+        .attr("x", "50%")
+        .attr("y", "50%")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", "16px")
+        .attr("fill", "gray")
+        .text("Loading...");
+
+    // Add a spinner circle
+    const width = svg.node().getBoundingClientRect().width;
+    const height = svg.node().getBoundingClientRect().height;
+    const spinner = svg.append("circle")
+        .attr("id", "loading-spinner")
+        .attr("cx", 0)  // Change to 0  
+        .attr("cy", 0)  // Change to 0
+        .attr("r", 20)
+        .attr("stroke", "gray")
+        .attr("stroke-width", 4)
+        .attr("fill", "none")
+        .attr("stroke-dasharray", "31.4")
+        .attr("stroke-dashoffset", 0);
+    
+    const centerX = width / 2;
+    const centerY = height / 2 - 50;
+
+    // Position the circle using transform/translate
+    spinner.attr("transform", `translate(${centerX}, ${centerY})`);
+
+    // Initialize rotation
+    let angle = 0;
+    // Use setInterval for smooth rotation
+    const intervalId = setInterval(() => {
+        angle = (angle + 5) % 360;
+        // Apply rotation AND translation together
+        spinner.attr("transform", `translate(${centerX}, ${centerY}) rotate(${angle})`);
+    }, 16);
+
+    svg.node().__loadingInterval = intervalId;
+
+
+}
+
+// Function to remove loading animation
+function hideLoadingInSvg() {
+    const svg = d3.select("#memory-svg");
+
+    // Clear the interval for the spinner
+    if (svg.node().__loadingInterval) {
+        clearInterval(svg.node().__loadingInterval);
+    }
+
+    // Clear SVG elements
+    svg.selectAll("*").remove();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     async function startDebugging() {
+        showLoadingInSvg();
         try {
             const response = await fetch('/start_debugging/', {
                 method: 'POST',
@@ -21,26 +196,39 @@ document.addEventListener("DOMContentLoaded", () => {
                     c_code: editor.getValue() // Pass the C code from CodeMirror editor
                 })
             });
-
+    
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
+    
             const data = await response.json();
             if (data.error) {
                 console.error(data.error);
                 return;
             }
-
+    
+            console.log("Response data:", data); // Debug: Log the entire response
+    
+            // Ensure memory state and function name exist in the response
+            const memoryState = data.memory_state;
+            const functionName = data.function_name;
+    
+            if (!memoryState || !functionName) {
+                console.error("Memory state or function name is missing from the response.");
+                return;
+            }
+    
             debuggingSessionStarted = true; // Mark debugging session as started
             console.log("Debugging session started");
+    
+            hideLoadingInSvg();
             alert("Debugging session has started. Please press Next");
+            // Update the memory visualization
+            updateMemoryVisualization(memoryState, functionName);
         } catch (error) {
             console.error("Error in startDebugging:", error);
         }
-        const svg = d3.select("#memory-svg");
-        svg.selectAll("*").remove();
-    }
+    }    
 
     // Add stopDebugging function
     async function stopDebugging() {
@@ -97,15 +285,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            currentLine = data.current_line;
-            memoryData = data.memory_state;
-            functionName = data.function_name;
-            memoryData.forEach(value => {
-                if (value !== undefined) {
-                    console.log(value);
-                }
-            });
-            updateVisualization();
+            const memoryState = data.memory_state;
+            const functionName = data.function_name;
+            updateMemoryVisualization(memoryState, functionName);
+
+
         } catch (error) {
             console.error("Error in stepForward:", error);
         }
