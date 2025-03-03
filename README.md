@@ -1,5 +1,5 @@
 
-# Project Title
+# C Code Visualizer
 
 C Code Visualizer is a web-based application that allows users to interactively visualize C code execution. Users can step through their code line by line, view memory allocation, and understand how variables and values change during execution.
 
